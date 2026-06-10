@@ -1,7 +1,15 @@
+import geopandas as gpd
+import pandas as pd
+
 from nps_active_space.utils.models import FAAReleasable
 
 
-def load_faa(faa_path, faa_corrections_path, database_type, tracks):
+def load_faa(
+    faa_path: str | None,
+    faa_corrections_path: str | None,
+    database_type: str,
+    tracks: gpd.GeoDataFrame,
+) -> pd.DataFrame | None:
     """Load FAA releasable data for the tracks in the session, if applicable."""
     if faa_path is None or faa_corrections_path is None:
         return None
@@ -21,7 +29,12 @@ def load_faa(faa_path, faa_corrections_path, database_type, tracks):
     return None
 
 
-def lookup_aircraft(faa, database_type, track_id, points):
+def lookup_aircraft(
+    faa: pd.DataFrame | None,
+    database_type: str,
+    track_id: str,
+    points: gpd.GeoDataFrame,
+) -> tuple[pd.Series | None, str | None, str | None]:
     """Look up FAA row and help text for a track."""
     if faa is None:
         return None, None, None

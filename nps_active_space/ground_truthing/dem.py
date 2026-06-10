@@ -1,9 +1,14 @@
 import numpy as np
+import numpy.typing as npt
 import pyproj
 import rasterio
+from rasterio.io import DatasetReader
 
 
-def process_dem(dem, crs):
+def process_dem(
+    dem: DatasetReader,
+    crs: str,
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating], np.ma.MaskedArray | npt.NDArray[np.floating]]:
     data = dem.read(1)
 
     if dem.nodata is not None:

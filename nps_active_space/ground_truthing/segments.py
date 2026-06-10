@@ -1,10 +1,13 @@
-from typing import Any, Optional
+import datetime as dt
 
 import geopandas as gpd
 from shapely.geometry import LineString, Point
 
+# Mutable [start, end] pair on the time_audible axis (lists are updated in place).
+AudibleRange = list[dt.datetime]
 
-def collapse_audible_ranges(ranges: list):
+
+def collapse_audible_ranges(ranges: list[AudibleRange]) -> list[AudibleRange]:
     """Collapse overlapping audible ranges into single audible ranges.
     
     Parameters
@@ -41,18 +44,18 @@ def collapse_audible_ranges(ranges: list):
 
 
 def build_annotation_segments(
-    track_id: Any,
+    track_id: str,
     points: gpd.GeoDataFrame,
-    audible_ranges: Optional[list] = [],
+    audible_ranges: list[AudibleRange] = [],
     valid: bool = True,
-    note: Optional[str] = None,
+    note: str | None = None,
 ) -> gpd.GeoDataFrame:
     """
     Build annotation segment GeoDataFrame from track points and audible ranges.
 
     Parameters
     ----------
-    track_id : Any
+    track_id : str
         The track unique identifier.
     points: gpd.GeoDataFrame:
         Track and spline points to annotate.

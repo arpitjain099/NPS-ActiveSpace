@@ -1,14 +1,25 @@
 import datetime as dt
 import warnings
+from typing import TYPE_CHECKING
 
+import geopandas as gpd
+import numpy as np
 import pandas as pd
 from matplotlib.dates import date2num, num2date
 from shapely.geometry import Point
 
+from nps_active_space.ground_truthing.segments import AudibleRange
 from nps_active_space.utils.computation import audible_time_delay, interpolate_spline, expected_Lp
 
+if TYPE_CHECKING:
+    from nps_active_space.utils.models import Nvspl
 
-def load_spectrogram(nvspl, points, time_pad=None):
+
+def load_spectrogram(
+    nvspl: "Nvspl",
+    points: gpd.GeoDataFrame,
+    time_pad: dt.timedelta | None = None,
+) -> pd.DataFrame:
     """Load spectrogram window for track points."""
     if time_pad is None:
         time_pad = dt.timedelta(seconds=5*60)
@@ -18,7 +29,7 @@ def load_spectrogram(nvspl, points, time_pad=None):
     return spectro
 
 
-def prepare_spline(points, mic_point):
+def prepare_spline(points: gpd.GeoDataFrame, mic_point: Point) -> gpd.GeoDataFrame:
     """Sort points, interpolate spline, and compute audibility fields."""
     points.sort_values(by='point_dt', ascending=True, inplace=True)
     spline = interpolate_spline(points)
@@ -27,21 +38,29 @@ def prepare_spline(points, mic_point):
     return spline
 
 
-def closest_approach(spline):
+def closest_approach(spline: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame, dt.datetime]:
     """Determine the closest spline point to the mic."""
     closest_point = spline[spline.distance_to_target == spline.distance_to_target.min()]
     closest_time = spline.loc[spline.distance_to_target.idxmin()]['time_audible']
     return closest_point, closest_time
 
 
-def limit_line_bounds(closest_time, x_lims):
+def limit_line_bounds(
+    closest_time: dt.datetime,
+    x_lims: np.ndarray,
+) -> tuple[float, float]:
     """Calculate datetime starting points for limit lines."""
     lower_limit_start = max(date2num(closest_time - dt.timedelta(seconds=60)), x_lims[0])
     upper_limit_start = min(date2num(closest_time + dt.timedelta(seconds=60)), x_lims[-1])
     return lower_limit_start, upper_limit_start
 
 
-def audible_ranges_from_annotations(annots, spline, lower_limit_start, upper_limit_start):
+def audible_ranges_from_annotations(
+    annots: gpd.GeoDataFrame,
+    spline: gpd.GeoDataFrame,
+    lower_limit_start: float,
+    upper_limit_start: float,
+) -> list[AudibleRange] | None:
     """
     Load audible ranges from previous annotations or defaults.
 
@@ -51,7 +70,7 @@ def audible_ranges_from_annotations(annots, spline, lower_limit_start, upper_lim
         # default range slider
         return [[num2date(lower_limit_start), num2date(upper_limit_start)]]
 
-    audible_ranges = []
+    audible_ranges: list[AudibleRange] = []
     for _, a in annots[annots["valid"] & annots["audible"]].iterrows():
         # note that invalid or fully inaudible annotations will result in no ranges, as desired
 

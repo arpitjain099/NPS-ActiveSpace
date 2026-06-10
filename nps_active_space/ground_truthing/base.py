@@ -11,6 +11,6 @@ class _AppFrame(ABC, tk.Frame):
     master : tk.Tk
         A tkinter app instance that will display the frame.
     """
-    def __init__(self, master: tk.Tk):
+    def __init__(self, master: tk.Tk) -> None:
         super().__init__(master)
         self.master = master

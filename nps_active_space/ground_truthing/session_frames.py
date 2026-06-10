@@ -1,11 +1,11 @@
-from typing import Any, Optional
-
+import geopandas as gpd
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from matplotlib.dates import date2num
 from shapely.geometry import Point
 
 from nps_active_space.ground_truthing.base import _AppFrame
+from nps_active_space.ground_truthing.segments import AudibleRange
 from nps_active_space.ground_truthing import dem
 from nps_active_space.ground_truthing import plotting
 from nps_active_space.ground_truthing import segments
@@ -22,7 +22,7 @@ class _AnnotationLoadFrame(_AppFrame):
     master : tk.Tk
         The tkinter window this frame will be shown in.
     """
-    def __init__(self, master):
+    def __init__(self, master: tk.Tk) -> None:
         super().__init__(master)
 
         # Define vars.
@@ -99,7 +99,7 @@ class _AnnotationLoadFrame(_AppFrame):
         self.create_file_button.place(relx=0.6, rely=0.53, anchor='w')
         self.continue_button.place(relx=0.9, rely=0.9, anchor='center')
 
-    def _clear_yes(self):
+    def _clear_yes(self) -> None:
         """Remove the Select File and related widgets if No option is selected."""
         self.select_file_button.place_forget()
         self.select_file_label.place_forget()
@@ -108,7 +108,7 @@ class _AnnotationLoadFrame(_AppFrame):
 
         self.create_file_button.place(relx=0.6, rely=0.53, anchor='w')
 
-    def _clear_no(self):
+    def _clear_no(self) -> None:
         """Remove the Create File and related widgets if Yes option is selected."""
         self.create_file_button.place_forget()
         self.create_file_label.place_forget()
@@ -117,7 +117,7 @@ class _AnnotationLoadFrame(_AppFrame):
 
         self.select_file_button.place(relx=0.6, rely=0.48, anchor='w')
 
-    def _select_file(self):
+    def _select_file(self) -> None:
         """Open File Dialog and save the existing selected annotation file."""
         filetypes = (('geojson files', '*.geojson'),)
         filename = filedialog.askopenfilename(
@@ -130,7 +130,7 @@ class _AnnotationLoadFrame(_AppFrame):
             self.select_file_label.config(text=f"...{filename[-50:]}")
             self.select_file_label.place(relx=0.66, rely=0.48, anchor='w')
 
-    def _create_file(self):
+    def _create_file(self) -> None:
         """Open File Dialog and save the new annotation file."""
         filetypes = (('geojson files', '*.geojson'),)
         filename = filedialog.asksaveasfilename(
@@ -146,7 +146,7 @@ class _AnnotationLoadFrame(_AppFrame):
             self.create_file_label.config(text=f"...{filename[-50:]}")
             self.create_file_label.place(relx=0.66, rely=0.53, anchor='w')
 
-    def _option_selected(self):
+    def _option_selected(self) -> None:
         """If user wants to load existing annotations, load them before proceeding to the app instructions frame."""
         if self.annotation_filename.get():
 
@@ -166,7 +166,7 @@ class _InstructionsFrame(_AppFrame):
     master : tk.Tk
         The tkinter window this frame will be shown in.
     """
-    def __init__(self, master):
+    def __init__(self, master: tk.Tk) -> None:
         super().__init__(master)
 
         # Define widgets.
@@ -222,7 +222,7 @@ class _CompletionFrame(_AppFrame):
         master : tk.Tk
             The tkinter window this frame will be shown in.
     """
-    def __init__(self, master):
+    def __init__(self, master: tk.Tk) -> None:
         super().__init__(master)
 
         # Define widgets.
@@ -246,7 +246,7 @@ class _GroundTruthingFrame(_AppFrame):
         master : tk.Tk
             The tkinter window this frame will be shown in.
     """
-    def __init__(self, master):
+    def __init__(self, master: tk.Tk) -> None:
         super().__init__(master)
 
         # Set frame variables to starting values.
@@ -383,7 +383,7 @@ class _GroundTruthingFrame(_AppFrame):
         self._load_index(0)
     
     
-    def _load_index(self, i):
+    def _load_index(self, i: int) -> None:
         """Move to the track with index `i`."""
 
         # set index
@@ -472,19 +472,19 @@ class _GroundTruthingFrame(_AppFrame):
 
         self._build_plot()
 
-    def _next(self):
+    def _next(self) -> None:
         if self.i + 1 < len(self.data):
             self._load_index(self.i + 1)
         else:
             self.master.switch_frame(_CompletionFrame)
 
-    def _back(self):
+    def _back(self) -> None:
         if self.i <= 0:
             self.master.switch_frame(_InstructionsFrame)
         else:
             self._load_index(self.i - 1)
 
-    def _next_unannotated(self):
+    def _next_unannotated(self) -> None:
         """iterate self.i until we find a track that hasn't been annotated"""
         while (self.i+1 < len(self.data)):
             self.i += 1
@@ -495,7 +495,7 @@ class _GroundTruthingFrame(_AppFrame):
         # if all are annotated, we're done!
         self.master.switch_frame(_CompletionFrame)
     
-    def _next_annotated(self):
+    def _next_annotated(self) -> None:
         i = self.i
         while (i+1 < len(self.data)):
             i += 1
@@ -509,7 +509,7 @@ class _GroundTruthingFrame(_AppFrame):
             message=f"None annotated."
         )
 
-    def _next_identifier(self):
+    def _next_identifier(self) -> None:
         """iterate self.i until we find a different vehicle identifier"""
         current_id = self.track_id.split("_")[0]
         while (self.i+1 < len(self.data)):
@@ -521,7 +521,7 @@ class _GroundTruthingFrame(_AppFrame):
         # if all are annotated, we're done!
         self.master.switch_frame(_CompletionFrame)
 
-    def _to_last_annotated(self):
+    def _to_last_annotated(self) -> None:
         """Search from the end until we find an annotated record"""
         for i in range(len(self.data)-1, -1, -1):
             track_id = self.data[i][0]
@@ -535,15 +535,21 @@ class _GroundTruthingFrame(_AppFrame):
         )
 
 
-    def _store_annotation(self, track_id: Any, points, audible_ranges: Optional[list] = [],
-                           valid: bool = True, note: Optional[str] = None):
+    def _store_annotation(
+        self,
+        track_id: str,
+        points: gpd.GeoDataFrame,
+        audible_ranges: list[AudibleRange] = [],
+        valid: bool = True,
+        note: str | None = None,
+    ) -> None:
         """
         Save an annotation depending on what button what audibility button was clicked and clear
         the frame to be able to show the next plot.
 
         Parameters
         ----------
-        track_id : Any
+        track_id : str
             The track unique identifier.
         points: gpd.GeoDataFrame:
             Track and spline points to annotate.
@@ -564,5 +570,5 @@ class _GroundTruthingFrame(_AppFrame):
         self.master.set_annotation(track_id, gdf)
         self._next()
 
-    def _build_plot(self):
+    def _build_plot(self) -> None:
         plotting.build_plot(self)

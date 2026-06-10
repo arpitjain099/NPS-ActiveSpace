@@ -1,11 +1,12 @@
 import traceback
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tkinter as tk
+from rasterio.io import DatasetReader
 from tkinter import messagebox
 
 from nps_active_space import ACTIVE_SPACE_DIR
@@ -16,13 +17,35 @@ from nps_active_space.ground_truthing.setup_frames import _WelcomeFrame
 if TYPE_CHECKING:
     from nps_active_space.utils.models import Microphone, Nvspl, Tracks
 
-_app = None
+_app: "_App | None" = None
 
 
-def launch(*args, **kwargs):
+def launch(
+    mic: "Microphone",
+    nvspl: "Nvspl",
+    tracks: "Tracks",
+    crs: str,
+    study_area: gpd.GeoDataFrame,
+    database_type: str,
+    dem: DatasetReader,
+    clip: bool = False,
+    faa_path: str | None = None,
+    faa_corrections_path: str = "",
+) -> None:
     """A wrapper function to launch the ground truthing application."""
     global _app
-    _app = _App(*args, **kwargs)
+    _app = _App(
+        mic,
+        nvspl,
+        tracks,
+        crs,
+        study_area,
+        database_type,
+        dem,
+        clip=clip,
+        faa_path=faa_path,
+        faa_corrections_path=faa_corrections_path,
+    )
     _app.mainloop()
 
 
@@ -54,9 +77,19 @@ class _App(tk.Tk):
     faa_corrections_path : str
         If using aircraft data, path to the FAA Releasable database corrections json file. Leave this as None if using AIS data.
     """
-    def __init__(self, mic: 'Microphone', nvspl: 'Nvspl', tracks: 'Tracks',
-                 crs: str, study_area: gpd.GeoDataFrame, database_type: str, dem, clip: bool = False,
-                 faa_path: str = None, faa_corrections_path: str = ""):
+    def __init__(
+        self,
+        mic: "Microphone",
+        nvspl: "Nvspl",
+        tracks: "Tracks",
+        crs: str,
+        study_area: gpd.GeoDataFrame,
+        database_type: str,
+        dem: DatasetReader,
+        clip: bool = False,
+        faa_path: str | None = None,
+        faa_corrections_path: str = "",
+    ) -> None:
         super().__init__()
 
         self.crs = crs
@@ -100,7 +133,7 @@ class _App(tk.Tk):
         self.switch_frame(_WelcomeFrame)
 
 
-    def switch_frame(self, frame_class: Type[_AppFrame]):
+    def switch_frame(self, frame_class: type[_AppFrame]) -> None:
         """
         Switch the frame that is being displayed in the application window.
 
@@ -116,7 +149,7 @@ class _App(tk.Tk):
         self._frame = new_frame
         self._frame.pack(expand=True, anchor='nw', fill=tk.BOTH)
 
-    def set_annotation(self, track_id: str, annotated_lines: gpd.GeoDataFrame):
+    def set_annotation(self, track_id: str, annotated_lines: gpd.GeoDataFrame) -> None:
         """
         Add new audibility annotations for a track, replacing any previous annotations for that track.
 
@@ -140,7 +173,7 @@ class _App(tk.Tk):
 
         print("n segments saved", (self.annotations["_id"] == track_id).sum())
 
-    def load_annotations(self, filename: str):
+    def load_annotations(self, filename: str) -> None:
         """
         Simple function to load existing annotations from a geojson file.
 
@@ -151,7 +184,7 @@ class _App(tk.Tk):
         """
         self.annotations = Annotations(filename)
 
-    def _close(self):
+    def _close(self) -> None:
         """
         A function to safely close the application. If the user has unsaved changes, they will be warned and asked
         if they would like to proceed before closing the application.
@@ -169,7 +202,7 @@ class _App(tk.Tk):
             plt.close("all")
             self.destroy()
 
-    def _save(self):
+    def _save(self) -> None:
         """Save current annotations to the output file."""
         if self._saved is True:
             return
@@ -186,7 +219,7 @@ class _App(tk.Tk):
                 message=f"Unable to save.\n\n{traceback.format_exc()}",
             )
 
-    def _plot(self):
+    def _plot(self) -> None:
         """Plot all annotated tracks and points."""
         if self.annotations.empty or self.annotations["valid"].sum() == 0:
             tk.messagebox.showinfo(

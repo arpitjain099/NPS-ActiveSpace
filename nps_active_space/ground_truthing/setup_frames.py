@@ -15,7 +15,7 @@ class _WelcomeFrame(_AppFrame):
     master : tk.Tk
         The tkinter window this frame will be shown in.
     """
-    def __init__(self, master):
+    def __init__(self, master: tk.Tk) -> None:
         super().__init__(master)
 
         # Define widgets.

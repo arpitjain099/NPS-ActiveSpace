@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List
+from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,8 +11,11 @@ from matplotlib.widgets import Button
 
 from nps_active_space.ground_truthing.widgets import FastRangeSlider
 
+if TYPE_CHECKING:
+    from nps_active_space.ground_truthing.session_frames import _GroundTruthingFrame
 
-def build_plot(frame):
+
+def build_plot(frame: "_GroundTruthingFrame") -> None:
     """
     Build the matplotlib GridSpec plot for a track, using class state set by _load_index().
     """
@@ -222,11 +225,11 @@ def build_plot(frame):
     canvas.draw()
 
 
-def on_draw(frame, event = None):
+def on_draw(frame: "_GroundTruthingFrame", event: Any = None) -> None:
     frame.bg = frame.canvas.copy_from_bbox(frame.fig.bbox)
     update_plot(frame)
 
-def update_plot(frame):
+def update_plot(frame: "_GroundTruthingFrame") -> None:
     if frame.bg is None:
         return
     frame.canvas.restore_region(frame.bg)
@@ -244,11 +247,11 @@ def update_plot(frame):
     frame.canvas.blit(frame.fig.bbox)
     frame.canvas.flush_events()
 
-def on_mouse_down(frame, event):
+def on_mouse_down(frame: "_GroundTruthingFrame", event: Any) -> None:
     if event.button == 1 and event.inaxes in frame.slider_axes:
         update_plot(frame)
 
-def on_mouse_move(frame, event):
+def on_mouse_move(frame: "_GroundTruthingFrame", event: Any) -> None:
     if event.inaxes == frame.spectro_ax or event.inaxes in frame.slider_axes:
         dt = num2date(event.xdata).replace(tzinfo=None)
 
@@ -271,7 +274,7 @@ def on_mouse_move(frame, event):
         update_plot(frame)
         
 
-def new_audible_range(frame, _):
+def new_audible_range(frame: "_GroundTruthingFrame", _: Any) -> None:
     """
     Add a new audible range. Since we can't change the layout of axes after making them,
     we need to clear the current plot and remake it, taking into account the new audible range.
@@ -282,7 +285,7 @@ def new_audible_range(frame, _):
     ])
     build_plot(frame)
 
-def remove_audible_range(frame, i, _):
+def remove_audible_range(frame: "_GroundTruthingFrame", i: int, _: Any) -> None:
     """Remove a certain audible range. See new_audible_range() for why we have to replot the figure."""
     del frame.audible_ranges[i]
     build_plot(frame)
@@ -290,7 +293,7 @@ def remove_audible_range(frame, i, _):
 
 class AudibleRangeUI():
     """Class to manage the various UI components of an audible range"""
-    def __init__(self, gt_frame, i, label):
+    def __init__(self, gt_frame: "_GroundTruthingFrame", i: int, label: str) -> None:
         self.range_bounds = gt_frame.audible_ranges[i]  # where we store the range limits, part of the _GroundTruthingFrame.audible_ranges list
         self.slider_ax = gt_frame.slider_axes[i]
         self.gt_frame = gt_frame
@@ -346,13 +349,13 @@ class AudibleRangeUI():
         self.slider.on_changed(self._slider_update)
         self._slider_update([low_init, high_init])
 
-    def _slider_update(self, val: List):
+    def _slider_update(self, val: list[float]) -> None:
         """
         Update spline highlight and spectrogram lines based on slider values.
 
         Parameters
         ----------
-        val : List
+        val : list[float]
             A two item list with the [min, max] values of the range slider.
         """
         if self.bg is not None:
