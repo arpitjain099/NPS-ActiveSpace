@@ -45,9 +45,12 @@ class TestBuildAnnotationSegments:
         points = make_track_points(3)
         result = build_annotation_segments("T1", points, audible_ranges=[], valid=True)
         assert len(result) == 1
-        assert result.iloc[0]["audible"] is False
-        assert result.iloc[0]["valid"] is True
-        assert result.iloc[0]["_id"] == "T1"
+        row = result.iloc[0]
+        assert row["audible"] is False
+        assert row["valid"] is True
+        assert row["_id"] == "T1"
+        assert row["start_dt"] == points.point_dt.iat[0]
+        assert row["end_dt"] == points.point_dt.iat[-1]
 
     def test_invalid_track_single_segment(self):
         points = make_track_points(4)
@@ -61,7 +64,7 @@ class TestBuildAnnotationSegments:
         assert row["start_dt"] == points.point_dt.iat[0]
         assert row["end_dt"] == points.point_dt.iat[-1]
 
-    def test_one_audible_window_splits_head_and_tail(self):
+    def test_tail_inaudible_after_audible_window(self):
         points = make_track_points(6)
         t = points.point_dt
         audible_ranges = [[t.iat[1], t.iat[3]]]
@@ -97,6 +100,17 @@ class TestBuildAnnotationSegments:
         assert len(audible) == 1
         assert audible.iloc[0]["start_dt"] == t.iat[1]
         assert audible.iloc[0]["end_dt"] == t.iat[3]
+
+    def test_splits_on_time_audible_not_point_dt(self):
+        point_dt = pd.date_range("2020-01-01 12:00", periods=6, freq="min")
+        time_audible = point_dt + pd.Timedelta(seconds=30)
+        points = make_track_points(6, time_audible=time_audible)
+        # Audible window on time_audible axis between 2nd and 4th samples.
+        audible_ranges = [[time_audible.iat[1], time_audible.iat[3]]]
+        result = build_annotation_segments("T1", points, audible_ranges=audible_ranges)
+        audible = result[result["audible"]].iloc[0]
+        assert audible["start_dt"] == point_dt.iat[1]
+        assert audible["end_dt"] == point_dt.iat[2]
 
     def test_note_propagates_to_segments(self):
         points = make_track_points(5)
