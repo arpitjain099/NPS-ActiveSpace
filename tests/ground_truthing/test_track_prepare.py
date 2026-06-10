@@ -96,16 +96,16 @@ class TestAudibleRangesFromAnnotations:
             {
                 "valid": [True],
                 "audible": [True],
-                "start_dt": [point_dt.iat[2]],
-                "end_dt": [point_dt.iat[4]],
+                "start_dt": [point_dt[2]],
+                "end_dt": [point_dt[4]],
             },
             geometry=[spline.geometry.iat[0]],
             crs="EPSG:4326",
         )
-        lower = date2num(point_dt.iat[0])
-        upper = date2num(point_dt.iat[-1])
+        lower = date2num(point_dt[0])
+        upper = date2num(point_dt[-1])
         result = audible_ranges_from_annotations(annots, spline, lower, upper)
-        assert result == [[time_audible.iat[2], time_audible.iat[4]]]
+        assert result == [[time_audible[2], time_audible[4]]]
 
     def test_returns_none_when_start_outside_tolerance(self):
         spline = make_track_points(5)

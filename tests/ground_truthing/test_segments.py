@@ -46,8 +46,8 @@ class TestBuildAnnotationSegments:
         result = build_annotation_segments("T1", points, audible_ranges=[], valid=True)
         assert len(result) == 1
         row = result.iloc[0]
-        assert row["audible"] is False
-        assert row["valid"] is True
+        assert row["audible"] == False
+        assert row["valid"] == True
         assert row["_id"] == "T1"
         assert row["start_dt"] == points.point_dt.iat[0]
         assert row["end_dt"] == points.point_dt.iat[-1]
@@ -59,8 +59,8 @@ class TestBuildAnnotationSegments:
         )
         assert len(result) == 1
         row = result.iloc[0]
-        assert row["valid"] is False
-        assert row["audible"] is False
+        assert row["valid"] == False
+        assert row["audible"] == False
         assert row["start_dt"] == points.point_dt.iat[0]
         assert row["end_dt"] == points.point_dt.iat[-1]
 
@@ -106,11 +106,11 @@ class TestBuildAnnotationSegments:
         time_audible = point_dt + pd.Timedelta(seconds=30)
         points = make_track_points(6, time_audible=time_audible)
         # Audible window on time_audible axis between 2nd and 4th samples.
-        audible_ranges = [[time_audible.iat[1], time_audible.iat[3]]]
+        audible_ranges = [[time_audible[1], time_audible[3]]]
         result = build_annotation_segments("T1", points, audible_ranges=audible_ranges)
         audible = result[result["audible"]].iloc[0]
-        assert audible["start_dt"] == point_dt.iat[1]
-        assert audible["end_dt"] == point_dt.iat[2]
+        assert audible["start_dt"] == point_dt[1]
+        assert audible["end_dt"] == point_dt[2]
 
     def test_note_propagates_to_segments(self):
         points = make_track_points(5)
