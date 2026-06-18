@@ -68,7 +68,7 @@ def load_layered_activespace(project_dir, unit, site, year, gain=None, crs="epsg
         altitude = int(os.path.basename(dir).split("_")[1].split("m")[0])
         layer_dirs[altitude] = dir
     study_area = load_studyarea(project_dir, unit, site, year)
-    return LayeredActiveSpace(unit+site+year, layer_dirs, study_area, gain, crs)
+    return LayeredActiveSpace(f"{unit}{site}{year}", layer_dirs, study_area, gain, crs)
 
 
 def load_activespace(project_dir, unit, site, year, gain, altitude_m=None, crs=None):
