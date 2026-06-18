@@ -3,9 +3,22 @@ import pandas as pd
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import pickle
-from nps_active_space.scripts.run_audible_transits import init_audible_transits, AudibleTransits, AudibleTransitsADSB, AudibleTransitsGPS
+from nps_active_space.scripts.run_audible_transits import (
+    init_audible_transits,
+    AudibleTransits,
+    AudibleTransitsADSB,
+    AudibleTransitsAIS,
+    AudibleTransitsGPS,
+)
 from nps_active_space.utils.metrics import get_obs_periods, get_all_geo_stats
 import nps_active_space.utils.config as cfg
+
+
+def filter_geo_metric_tracks(tracks: pd.DataFrame, track_source: str) -> pd.DataFrame:
+    """Return tracks to include when computing geographic metrics."""
+    if track_source in ("GPS", "ADSB"):
+        return tracks[tracks["aircraft_type"] == "Fixed-wing"]
+    return tracks
 
 
 def get_optimal_3d_gain(project_dir, unit, site, year):
@@ -55,14 +68,16 @@ def get_geographic_metrics(unit, site, year, env, track_source, transits_pkl=Non
     project_dir = cfg.read("project", "dir")
     nvspl_archive = cfg.read("data", "nvspl_archive")
 
-    # process track source
     adsb_dir = None
+    ais_path = None
     if track_source == "ADSB":
         adsb_dir = cfg.read("data", "adsb")
     elif track_source == "AIS":
-        raise NotImplementedError('Code for AIS is not ready yet.')
-    
-    obs_periods = get_obs_periods(unit, site, year, nvspl_archive, adsb_dir)
+        ais_path = cfg.read("data", "ais")
+
+    obs_periods = get_obs_periods(
+        unit, site, year, nvspl_archive, adsb_dir=adsb_dir, ais_path=ais_path
+    )
     print(f"Time periods with acoustic and causal data:\n{obs_periods}")
 
     
@@ -88,8 +103,7 @@ def get_geographic_metrics(unit, site, year, env, track_source, transits_pkl=Non
     listener = AudibleTransits.from_pickle(transits_pkl)
     study_year = str(pd.Timestamp(listener.study_start).year)
     assert study_year == year, f"Audible transits study year ({study_year}) doesn't match 'year' argument ({year})."
-    tracks = listener.tracks
-    tracks = tracks[tracks["aircraft_type"] == "Fixed-wing"]
+    tracks = filter_geo_metric_tracks(listener.tracks, track_source)
     # close excess figures
     plt.close(listener.overflights_fig)
     plt.close(listener.transits_fig)
