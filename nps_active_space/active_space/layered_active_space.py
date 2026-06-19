@@ -22,11 +22,22 @@ class LayeredActiveSpace():
             self.set_gain(gain)
         self.fit_pbar = None
 
+        if not self.layer_dirs:
+            raise FileNotFoundError(
+                f"No active space layer directories provided for {designator}."
+            )
+
         # determine min and max gain - import here to avoid circular import
         from nps_active_space.utils.helpers import omni_to_gain
-        first_layer_dir = list(self.layer_dirs.values())[0]
-        active_names = glob.glob(os.path.join(first_layer_dir, "*_O_*.geojson"))
-        gains = list(map(lambda f: omni_to_gain(f), active_names))
+        active_names = []
+        for layer_dir in self.layer_dirs.values():
+            active_names.extend(glob.glob(os.path.join(layer_dir, "*_O_*.geojson")))
+        if not active_names:
+            raise FileNotFoundError(
+                f"No *_O_*.geojson active space files found for {designator} in:\n"
+                + "\n".join(f"  {d}" for d in self.layer_dirs.values())
+            )
+        gains = [omni_to_gain(path) for path in active_names]
         self.min_gain = min(gains)
         self.max_gain = max(gains)
     
@@ -54,7 +65,13 @@ class LayeredActiveSpace():
             self.all_activespaces[gain] = self.load_activespaces(gain)
 
     def set_gain(self, gain):
-        self.activespaces = self.load_activespaces(gain)
+        activespaces = self.load_activespaces(gain)
+        if activespaces is None:
+            raise FileNotFoundError(
+                f"Could not load active space layers for gain {gain}dB in {self.designator}. "
+                f"Check Output_Data/ACTIVESPACES/{self.designator}_*m/ for matching *_O_*.geojson files."
+            )
+        self.activespaces = activespaces
         self.gain = gain
 
     def fit(self, annotations, beta=1., plot=True, plot_savepath=None):

@@ -21,3 +21,7 @@ repository = "https://github.com/dbetchkal/NPS-ActiveSpace"
 
 [tool.setuptools]
 py-modules = ['nps_active_space']
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
