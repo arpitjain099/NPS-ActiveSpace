@@ -34,6 +34,31 @@ class TestCollapseAudibleRanges:
         ranges = [[t0, t0 + dt.timedelta(minutes=3)]]
         assert collapse_audible_ranges(ranges) == ranges
 
+    def test_empty_input(self):
+        assert collapse_audible_ranges([]) == []
+
+    def test_adjacent_ranges_stay_separate(self):
+        t0 = dt.datetime(2020, 1, 1, 12, 0, 0)
+        t1 = t0 + dt.timedelta(minutes=5)
+        t2 = t1 + dt.timedelta(minutes=5)
+        ranges = [[t0, t1], [t1, t2]]
+        assert collapse_audible_ranges(ranges) == [[t0, t1], [t1, t2]]
+
+    def test_chain_collapse_three_ranges(self):
+        t0 = dt.datetime(2020, 1, 1, 12, 0, 0)
+        ranges = [
+            [t0, t0 + dt.timedelta(minutes=5)],
+            [t0 + dt.timedelta(minutes=3), t0 + dt.timedelta(minutes=8)],
+            [t0 + dt.timedelta(minutes=7), t0 + dt.timedelta(minutes=12)],
+        ]
+        assert collapse_audible_ranges(ranges) == [[t0, t0 + dt.timedelta(minutes=12)]]
+
+    def test_nested_range_collapses(self):
+        t0 = dt.datetime(2020, 1, 1, 12, 0, 0)
+        outer = [t0, t0 + dt.timedelta(minutes=10)]
+        inner = [t0 + dt.timedelta(minutes=2), t0 + dt.timedelta(minutes=5)]
+        assert collapse_audible_ranges([outer, inner]) == [outer]
+
 
 class TestBuildAnnotationSegments:
     def test_all_inaudible_when_no_ranges(self):
@@ -168,3 +193,21 @@ class TestBuildAnnotationSegments:
             }
         )
         assert_frame_equal(actual, expected, check_dtype=False)
+
+    def test_default_audible_ranges_is_none(self):
+        """Verify the mutable default argument fix works correctly."""
+        points = make_track_points(3)
+        result = build_annotation_segments("T1", points)
+        actual = _tabular(result, SEGMENT_TABULAR_COLS)
+        expected = pd.DataFrame(
+            {
+                "_id": ["T1"],
+                "start_dt": [points.point_dt.iat[0]],
+                "end_dt": [points.point_dt.iat[-1]],
+                "valid": [True],
+                "audible": [False],
+                "note": [None],
+            }
+        )
+        assert_frame_equal(actual, expected, check_dtype=False)
+
