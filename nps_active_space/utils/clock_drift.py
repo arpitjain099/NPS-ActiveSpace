@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,7 +22,7 @@ from nps_active_space.utils.helpers import load_studyarea, get_deployment
 logger = logging.getLogger(__name__)
 
 
-def logsum(df, axis=1):
+def logsum(df: pd.DataFrame, axis: int = 1) -> pd.Series:
     """Take a dataframe with columns representing SPL time series and logsum them together"""
     pressure_sum = np.sum(10 ** (df / 10), axis=axis)
     return 10 * np.log10(pressure_sum)
@@ -40,7 +42,7 @@ class ClockDriftFixer():
     """
     
     def __init__(self, project_dir: str, unit: str, site: str, year: str,
-                 pts: Tracks, nvspl: Nvspl, database_type: TrackSource, plot_dir: str = None):
+                 pts: Tracks, nvspl: Nvspl, database_type: TrackSource, plot_dir: str | None = None) -> None:
         """Constructor for the ClockDriftFixer class. Loads data and computes predicted audibility of causal data.
 
         Parameters
@@ -123,7 +125,7 @@ class ClockDriftFixer():
         logger.info("Initialization done")
 
 
-    def get_clock_drift(self, start_dt, end_dt, max_clock_drift=pd.Timedelta(minutes=5)):
+    def get_clock_drift(self, start_dt: pd.Timestamp, end_dt: pd.Timestamp, max_clock_drift: pd.Timedelta = pd.Timedelta(minutes=5)) -> float | None:
         """
         Gets clock drift during a period of time using cross-correlation between the acoustic and causal records.
         
@@ -243,7 +245,7 @@ class ClockDriftFixer():
         return clock_drift
     
 
-    def _init_time_series_plot(self):
+    def _init_time_series_plot(self) -> None:
         """Utility for setting up a time series plot of clock drifts"""
         plt.subplots(figsize=(14, 6))
         plt.title(f"Estimated Daily Clock Drift, {self.deployment}")
@@ -252,7 +254,7 @@ class ClockDriftFixer():
         plt.ylabel("Estimated Clock Drift (sec)")
     
 
-    def drift_time_series(self, start_dt=None, end_dt=None, max_clock_drift=pd.Timedelta(minutes=5)):
+    def drift_time_series(self, start_dt: pd.Timestamp | None = None, end_dt: pd.Timestamp | None = None, max_clock_drift: pd.Timedelta = pd.Timedelta(minutes=5)) -> tuple[pd.DatetimeIndex, np.ndarray]:
         """Compute clock drift each day over an extended period of time to determine patterns over time."""
         if start_dt is None:
             start_dt = self.nvspl.index.min()
@@ -286,15 +288,15 @@ class ClockDriftFixer():
         return self.times, self.drifts
     
 
-    def _fit_drift_line(self, times, drifts):
+    def _fit_drift_line(self, times: pd.DatetimeIndex, drifts: np.ndarray) -> np.ndarray:
         """Utility to fit a line, used by fit_drift_lines()"""
         times_ns = times.astype(np.int64)
         times_days = times_ns / (1e9 * 60 * 60 * 24)
         return np.polyfit(times_days, drifts, deg=1)
     
 
-    def fit_drift_lines(self, indices_to_use, clock_drift_file=None,
-                        maintenance_times=[], start_dt=None, end_dt=None):
+    def fit_drift_lines(self, indices_to_use: list[int], clock_drift_file: str | None = None,
+                        maintenance_times: list[pd.Timestamp] = [], start_dt: pd.Timestamp | None = None, end_dt: pd.Timestamp | None = None) -> pd.DataFrame:
         """
         Clock drift tends to be linear (for ADSB particularly).
         This function fits lines for each time period between maintenance visits,
@@ -381,7 +383,7 @@ class ClockDriftFixer():
         return self.drift_fits
 
 
-def correct_clock_drift(tracks: Tracks, clock_drift_file: str, inplace: bool=True):
+def correct_clock_drift(tracks: Tracks, clock_drift_file: str, inplace: bool = True) -> Tracks:
     """Fix the point_dt field of a set of tracks by correcting for clock drift.
     
     Parameters
