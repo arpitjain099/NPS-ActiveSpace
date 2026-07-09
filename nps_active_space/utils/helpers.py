@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import glob
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -63,7 +65,7 @@ def omni_to_gain(omni_source: str) -> float:
     return int(match.group(1)) / 10
 
 
-def load_layered_activespace(project_dir, unit, site, year, gain=None, crs="epsg:4326"):
+def load_layered_activespace(project_dir: str, unit: str, site: str, year: int, gain: float | None = None, crs: str = "epsg:4326") -> LayeredActiveSpace:
     prefix = os.path.join(project_dir, f"{unit}{site}", "Output_Data", "ACTIVESPACES")
     layer_dirs = {}
     output_dirs = glob.glob(os.path.join(prefix, f"{unit}{site}{year}_*m"))
@@ -74,7 +76,7 @@ def load_layered_activespace(project_dir, unit, site, year, gain=None, crs="epsg
     return LayeredActiveSpace(unit+site+year, layer_dirs, study_area, gain, crs)
 
 
-def load_activespace(project_dir, unit, site, year, gain, altitude_m=None, crs=None):
+def load_activespace(project_dir: str, unit: str, site: str, year: int, gain: float, altitude_m: int | None = None, crs: str | None = None) -> gpd.GeoDataFrame:
     """
     Load in the active space for a given unit, site, year, and gain
 
@@ -127,7 +129,7 @@ def load_activespace(project_dir, unit, site, year, gain, altitude_m=None, crs=N
     return active_space
 
 
-def load_DEM(project_dir: str, unit: str, site: str):
+def load_DEM(project_dir: str, unit: str, site: str) -> rasterio.io.DatasetReader:
     """Loads the `NMSIM` digital elevation model using the project info
 
     Parameters
@@ -160,7 +162,7 @@ def load_DEM(project_dir: str, unit: str, site: str):
     return rasterio.open(raster_path)
 
 
-def get_elevation(DEM, lon: float, lat: float) -> float:
+def get_elevation(DEM: rasterio.io.DatasetReader, lon: float, lat: float) -> float:
     """Read elevation at a certain lat/lon from a DEM.
     """
     proj = Transformer.from_crs("epsg:4326", DEM.crs, always_xy=True)
@@ -170,7 +172,7 @@ def get_elevation(DEM, lon: float, lat: float) -> float:
     return elevation
 
 
-def load_studyarea(project_dir: str, unit: str, site: str, year: int, crs: str = None):
+def load_studyarea(project_dir: str, unit: str, site: str, year: int, crs: str | None = None) -> gpd.GeoDataFrame:
     """
     Load in the study area that contains the active space for a given unit, site, and year. 
     At present this function is overridden by `query_tracks()`, which is set to provide a study area = active space buffered by 25km.
@@ -292,8 +294,8 @@ def create_overflights_engine(db: dict[str, str]) -> "Engine":
 
 
 def query_tracks(engine: 'Engine', start_date: str, end_date: str,
-                 mask: Optional[gpd.GeoDataFrame] = None,
-                 mask_buffer_distance: Optional[int] = None) -> gpd.GeoDataFrame:
+                 mask: gpd.GeoDataFrame | None = None,
+                 mask_buffer_distance: int | None = None) -> gpd.GeoDataFrame:
     """
     Query flight tracks from the FlightsDB for a specific date range and optional within a specific area.
 
@@ -346,9 +348,9 @@ def query_tracks(engine: 'Engine', start_date: str, end_date: str,
 
 
 def query_adsb(adsb_path: str,  start_date: str, end_date: str,
-               mask: Optional[gpd.GeoDataFrame] = None,
-               mask_buffer_distance: Optional[int] = None,
-               exclude_early_ADSB: Optional[bool] = False) -> Union[Adsb, EarlyAdsb]:
+               mask: gpd.GeoDataFrame | None = None,
+               mask_buffer_distance: int | None = None,
+               exclude_early_ADSB: bool = False) -> Adsb | EarlyAdsb:
     """
     Query flight tracks from ADSB files for a specific date range and optional within a specific area.
 
@@ -404,7 +406,7 @@ def query_adsb(adsb_path: str,  start_date: str, end_date: str,
     return adsb
 
 
-def load_annotations(project_dir: str, unit: str, site: str, year: str, only_valid: bool = True):
+def load_annotations(project_dir: str, unit: str, site: str, year: str, only_valid: bool = True) -> gpd.GeoDataFrame:
     """Utility for locating and loading ground-truthing annotation files in a directory.
     If multiple files exist, they are combined into one GeoDataFrame.
 
@@ -464,7 +466,7 @@ class _BufferedHandler(logging.Handler):
         self.logs.clear()
 
 
-def get_logger(name: str, verbose: bool = False, logfile: str = None, make_log_buffer=False) -> logging.Logger:
+def get_logger(name: str, verbose: bool = False, logfile: str | None = None, make_log_buffer: bool = False) -> logging.Logger | tuple[logging.Logger, _BufferedHandler]:
     """
     General purpose function for creating a logger.
 
@@ -523,7 +525,7 @@ def get_logger(name: str, verbose: bool = False, logfile: str = None, make_log_b
     return logger
 
 
-def get_omni_sources(lower: float, upper: float) -> List[str]:
+def get_omni_sources(lower: float, upper: float) -> list[str]:
     """
     Get a list of omni source files for tuning NMSim within a specific gain range.
     Source files are provided in the data directory for gains between -30 and +50.
@@ -565,7 +567,7 @@ def get_omni_sources(lower: float, upper: float) -> List[str]:
     return omni_sources
 
 
-def estimate_line_count(filename, sample_size=1024 * 1024):
+def estimate_line_count(filename: str, sample_size: int = 1024 * 1024) -> int:
     """Use a 1MB sample to estimate the number of lines in a large file"""
     file_size = os.path.getsize(filename)
     with open(filename, 'rb') as f:
@@ -577,8 +579,10 @@ def estimate_line_count(filename, sample_size=1024 * 1024):
 
 
 
-def plot_activespace_fit(project_dir, unit, site, year, gain, altitude_m=None,
-                         ax=None, dem=None, mic=None, active=None, annotations=None):
+def plot_activespace_fit(project_dir: str, unit: str, site: str, year: int, gain: float, altitude_m: int | None = None,
+                         ax: plt.Axes | None = None, dem: rasterio.io.DatasetReader | None = None,
+                         mic: Microphone | None = None, active: gpd.GeoDataFrame | None = None,
+                         annotations: gpd.GeoDataFrame | None = None) -> None:
     if ax is None:
         fig, ax = plt.subplots()
 
