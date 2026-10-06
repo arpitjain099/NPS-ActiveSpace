@@ -38,12 +38,13 @@ class TestCollapseAudibleRanges:
         assert collapse_audible_ranges([]) == []
 
     def test_adjacent_ranges_stay_separate(self):
+        """Ranges that only touch at an endpoint do not overlap, so they are kept apart."""
         t0 = dt.datetime(2020, 1, 1, 12, 0, 0)
         ranges = [
             [t0, t0 + dt.timedelta(minutes=3)],
             [t0 + dt.timedelta(minutes=3), t0 + dt.timedelta(minutes=6)],
         ]
-        assert collapse_audible_ranges(ranges) == [[t0, t0 + dt.timedelta(minutes=6)]]
+        assert collapse_audible_ranges(ranges) == ranges
 
 
 class TestBuildAnnotationSegments:
