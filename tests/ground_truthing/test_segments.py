@@ -165,7 +165,7 @@ class TestBuildAnnotationSegments:
         build_annotation_segments("T1", points)
         result = build_annotation_segments("T2", points)
         assert len(result) == 1
-        assert result.audible.iat[0] is False
+        assert not result.audible.iat[0]
 
     def test_note_propagates_to_segments(self):
         points = make_track_points(6)
