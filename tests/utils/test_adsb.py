@@ -4,6 +4,7 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
+from shapely.geometry import box
 
 from nps_active_space.utils.helpers import query_adsb
 from nps_active_space.utils.models import Adsb
@@ -78,3 +79,20 @@ class TestQueryAdsb:
     def test_date_filter_excludes_other_days(self):
         with pytest.raises(AssertionError, match="No ADSB data loaded"):
             query_adsb(str(ADSB_DIR), "2025-01-07", "2025-01-08")
+
+    def test_mask_buffer_is_applied_in_meters(self):
+        # A box between tracks, too small to contain any point, so anything
+        # returned below arrived via mask_buffer_distance.
+        def narrow_mask() -> gpd.GeoDataFrame:
+            # Buffering rewrites the caller's mask, so build a fresh one per call.
+            return gpd.GeoDataFrame(geometry=[box(-149.25, 63.6, -149.24, 63.61)], crs="epsg:4326")
+
+        with pytest.raises(AssertionError, match="No ADSB data loaded"):
+            query_adsb(str(ADSB_DIR), "2025-06-23", "2025-06-23", mask=narrow_mask())
+
+        near = query_adsb(str(ADSB_DIR), "2025-06-23", "2025-06-23",
+                          mask=narrow_mask(), mask_buffer_distance=2_000)
+        far = query_adsb(str(ADSB_DIR), "2025-06-23", "2025-06-23",
+                         mask=narrow_mask(), mask_buffer_distance=5_000)
+        assert not near.empty
+        assert len(near) < len(far)

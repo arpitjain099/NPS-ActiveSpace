@@ -4,6 +4,7 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
+from shapely.geometry import box
 
 from nps_active_space.utils.ais.query import query_ais_mxak
 from nps_active_space.utils.ais.reader import MxakAis
@@ -36,3 +37,20 @@ class TestQueryAisMxak:
     def test_date_filter_excludes_other_days(self):
         with pytest.raises(AssertionError, match="No AIS data loaded"):
             query_ais_mxak(AIS_DIR, "2025-01-08", "2025-01-08")
+
+    def test_mask_buffer_is_applied_in_meters(self):
+        # A box over open water, too small to contain any vessel position, so
+        # anything returned below arrived via mask_buffer_distance.
+        def narrow_mask() -> gpd.GeoDataFrame:
+            # Buffering rewrites the caller's mask, so build a fresh one per call.
+            return gpd.GeoDataFrame(geometry=[box(-137.0, 58.2, -136.99, 58.21)], crs="epsg:4326")
+
+        with pytest.raises(AssertionError, match="No AIS data loaded"):
+            query_ais_mxak(AIS_DIR, "2025-01-07", "2025-01-07", mask=narrow_mask())
+
+        near = query_ais_mxak(AIS_DIR, "2025-01-07", "2025-01-07",
+                              mask=narrow_mask(), mask_buffer_distance=1_000)
+        far = query_ais_mxak(AIS_DIR, "2025-01-07", "2025-01-07",
+                             mask=narrow_mask(), mask_buffer_distance=5_000)
+        assert not near.empty
+        assert len(near) < len(far)

@@ -43,7 +43,7 @@ def query_ais_mxak(
     if mask is not None:
         if mask_buffer_distance:
             centroid = mask.to_crs(epsg=4326).union_all().centroid
-            equal_area_crs = coords_to_utm(centroid.y, centroid.x)
+            equal_area_crs, _ = coords_to_utm(centroid.y, centroid.x)
             mask.geometry = mask.to_crs(equal_area_crs).buffer(mask_buffer_distance).to_crs(epsg=4326)
         mask = mask.to_crs("epsg:4326")
 
